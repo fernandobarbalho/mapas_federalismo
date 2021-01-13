@@ -255,14 +255,62 @@ muni<- read_municipal_seat()
 states <- read_state(year=2014)
 
 
+data = muni%>%left(mediodes_mun%>%
+                          rename(code_muni = cod_mun))
 
+#mapa com as localizações das cidades medoides
+
+muni %>%
+  ggplot() +
+  geom_sf(data = states, color = "lightblue", fill = NA ) +
+  geom_sf(color = "#DADADA", fill= NA, alpha =1, size= 0.1) +
+  #geom_sf(data = muni%>%left_join(mediodes_mun%>%
+                                   # rename(code_muni = cod_mun)), aes(color= name_muni)) +
+  theme_light() +
+  theme(
+    panel.background = element_rect(fill = "black"),
+    panel.grid = element_blank()
+  )
+
+
+muni %>%
+  left_join(df_graph%>%
+              rename(code_muni = cod_mun)) %>%
+  ggplot() +
+  geom_sf(data = states, color = "lightblue", fill = NA ) +
+  #geom_sf(color = "#DADADA", fill= NA, alpha =1, size= 1) +
+  geom_sf( aes(color=cluster), fill= NA, size=0.1)+
+  scale_color_viridis(discrete = TRUE,   na.translate = F, option = "D") +
+  theme_light() +
+  theme(
+    panel.background = element_rect(fill = "black"),
+    panel.grid = element_blank()
+  )
+
+
+muni %>%
+  left_join(df_graph%>%
+              rename(code_muni = cod_mun)) %>%
+  ggplot() +
+  geom_sf(data = states, color = "lightblue", fill = NA ) +
+  #geom_sf(color = "#DADADA", fill= NA, alpha =1, size= 1) +
+  geom_sf( aes(color=cluster), fill= NA, size=0.1)+
+  scale_color_viridis(discrete = TRUE,   na.translate = F, option = "D") +
+  theme_light() +
+  theme(
+    #panel.background = element_rect(fill = "black"),
+    panel.grid = element_blank()
+  )
+
+
+
+cowplot::plot_grid(map_1, map_2)
 #Mapa cluster 1
 #,"admnistracao","industria","servicos"
 mid_cluster_1 <- sum(df_graph[df_graph$cod_mun == 3158201 & df_graph$item_pib%in% c("pib_pc"),7])
 
 
-#mapa  do PIB total do primeiro cluster
-muni %>%
+df_mapa<- muni %>%
   left_join(df_graph%>%
               rename(code_muni = cod_mun)) %>%
   #mutate(cluster= factor(cluster)) %>%
@@ -273,9 +321,12 @@ muni %>%
   summarise(
     pib = sum(valor_original)
   ) %>%
-  ungroup()%>%
+  ungroup() 
+
+#mapa  do PIB total do primeiro cluster
+df_mapa %>%
   ggplot()+
-  geom_sf( aes(color=pib), fill=NA,  show.legend = TRUE,size=1,alpha =1) +
+  geom_sf(  aes(color=pib), fill=NA,  show.legend = TRUE,size=1,alpha =1) +
   geom_sf(data= states,fill=NA, color="lightblue", size=.15, show.legend = FALSE)+
   #scale_color_continuous_sequential (palette= "Plasma" )+
   scale_color_continuous_divergingx (palette = "RdYlBu",mid=mid_cluster_1)+
@@ -286,6 +337,7 @@ muni %>%
   labs( color="PIB per capita", size=8) +
   theme_minimal()  +
   theme(
+    panel.background = element_rect(fill = "black"),
     panel.grid = element_blank()
   )
   
@@ -429,38 +481,12 @@ muni %>%
 mid_cluster_4 <- sum(df_graph[df_graph$cod_mun == 4211603 & df_graph$item_pib%in% c("pib_pc"),7])
 
 
-#mapa  do PIB total do primeiro cluster
-muni %>%
-  left_join(df_graph%>%
-              rename(code_muni = cod_mun)) %>%
-  #mutate(cluster= factor(cluster)) %>%
-  filter(cluster == "4",
-         item_pib %in% c("pib_pc")) %>%
-  group_by(code_muni) %>%
-  
-  summarise(
-    pib = sum(valor_original)
-  ) %>%
-  ungroup()%>%
-  ggplot()+
-  geom_sf( aes(color=log(pib)), fill=NA,  show.legend = TRUE,size=1,alpha =1) +
-  geom_sf(data= states,fill=NA, color="lightblue", size=.15, show.legend = FALSE)+
-  #scale_color_continuous_sequential (palette= "Plasma" )+
-  scale_color_continuous_divergingx (palette = "RdYlBu",mid=log(mid_cluster_4))+
-  #scale_fill_gradient2( )+
-  #scale_color_gradient2( midpoint = log(mid_cluster_1))+
-  #scale_y_log10(labels=function(x) format(x, big.mark = ".", scientific = FALSE), breaks=c(10^3,5*10^3,10^4,5*10^4,10^5)) +
-  #scale_fill_viridis(trans = "log10")+
-  labs( color="PIB per Capita", size=8) +
-  theme_minimal()  +
-  theme(
-    panel.grid = element_blank()
-  )
+pib_pc_4<-df_graph[ df_graph$item_pib == "pib_pc" & df_graph$cluster =='4',7]
+mid_cluster_4 <- median(pib_pc_4$valor_original)
+mid_cluster_4 <- mean(pib_pc_4$valor_original)
 
-#Mapa cluster 4 pib_pc
-#,"admnistracao","industria","servicos"
-mid_cluster_4 <- sum(df_graph[df_graph$cod_mun == 4211603 & df_graph$item_pib%in% c("servicos"),7])
-
+muni <- read_municipality( year=2010 )
+muni <- read_municipal_seat()
 
 #mapa  do PIB total do primeiro cluster
 muni %>%
@@ -468,63 +494,27 @@ muni %>%
               rename(code_muni = cod_mun)) %>%
   #mutate(cluster= factor(cluster)) %>%
   filter(cluster == "4",
-         item_pib %in% c("servicos")) %>%
-  group_by(code_muni) %>%
-  
-  summarise(
-    pib = sum(valor_original)
-  ) %>%
+         item_pib== "pib_pc") %>%
+  mutate(pib =valor_original)%>%
   ungroup()%>%
   ggplot()+
-  geom_sf( aes(color=log(pib)), fill=NA,  show.legend = TRUE,size=1,alpha =1) +
+  geom_sf( aes(color=pib), fill=NA,  show.legend = TRUE,size =2, alpha =1) +
   geom_sf(data= states,fill=NA, color="lightblue", size=.15, show.legend = FALSE)+
-  #scale_color_continuous_sequential (palette= "Plasma" )+
-  scale_color_continuous_divergingx (palette = "RdYlBu",mid=log(mid_cluster_4))+
+  scale_color_continuous_divergingx (palette = "RdYlBu", mid = mid_cluster_4,labels=function(x) format(x, big.mark = ".", scientific = FALSE))+
+  #scale_fill_continuous_divergingx (palette = "RdYlBu", mid = mid_cluster_4,labels=function(x) format(x, big.mark = ".", scientific = FALSE))+
   #scale_fill_gradient2( )+
   #scale_color_gradient2( midpoint = log(mid_cluster_1))+
   #scale_y_log10(labels=function(x) format(x, big.mark = ".", scientific = FALSE), breaks=c(10^3,5*10^3,10^4,5*10^4,10^5)) +
   #scale_fill_viridis(trans = "log10")+
-  labs( color="PIB per Capita", size=8) +
+  labs( fill="PIB per Capita", size=8) +
   theme_minimal()  +
   theme(
     panel.grid = element_blank()
   )
 
 
-#Mapa cluster 4 pib_pc
-#,"admnistracao","industria","servicos"
-mid_cluster_4 <- sum(df_graph[df_graph$cod_mun == 4211603 & df_graph$item_pib%in% c("agro"),7])
-
-
-
-#mapa  do PIB total do primeiro cluster
-muni %>%
-  left_join(df_graph%>%
-              rename(code_muni = cod_mun)) %>%
-  #mutate(cluster= factor(cluster)) %>%
-  filter(cluster == "4",
-         item_pib %in% c("agro")) %>%
-  group_by(code_muni) %>%
-  
-  summarise(
-    pib = sum(valor_original)
-  ) %>%
-  ungroup()%>%
-  ggplot()+
-  geom_sf( aes(color=pib), fill=NA,  show.legend = TRUE,size=1,alpha =1) +
-  geom_sf(data= states,fill=NA, color="lightblue", size=.15, show.legend = FALSE)+
-  #scale_color_continuous_sequential (palette= "Plasma" )+
-  scale_color_continuous_divergingx (palette = "RdYlBu",mid=mid_cluster_4)+
-  #scale_fill_gradient2( )+
-  #scale_color_gradient2( midpoint = log(mid_cluster_1))+
-  #scale_y_log10(labels=function(x) format(x, big.mark = ".", scientific = FALSE), breaks=c(10^3,5*10^3,10^4,5*10^4,10^5)) +
-  #scale_fill_viridis(trans = "log10")+
-  labs( color="PIB per Capita", size=8) +
-  theme_minimal()  +
-  theme(
-    panel.grid = element_blank()
-  )
-
+NROW(df_graph[df_graph$valor_original>=mid_cluster_4,])
+NROW(df_graph[df_graph$valor_original<=mid_cluster_4,])
 
 #Mapa cluster 5 pib_pc
 #,"admnistracao","industria","servicos"
@@ -546,15 +536,15 @@ muni %>%
   ) %>%
   ungroup()%>%
   ggplot()+
-  geom_sf( aes(color=log(pib)), fill=NA,  show.legend = TRUE,size=1,alpha =1) +
+  geom_sf( aes(color=pib), fill=NA,  show.legend = TRUE,size=2,alpha =1) +
   geom_sf(data= states,fill=NA, color="lightblue", size=.15, show.legend = FALSE)+
   #scale_color_continuous_sequential (palette= "Plasma" )+
-  scale_color_continuous_divergingx (palette = "RdYlBu",mid=log(mid_cluster_5))+
+  scale_color_continuous_divergingx (palette = "RdYlBu")+
   #scale_fill_gradient2( )+
   #scale_color_gradient2( midpoint = log(mid_cluster_1))+
   #scale_y_log10(labels=function(x) format(x, big.mark = ".", scientific = FALSE), breaks=c(10^3,5*10^3,10^4,5*10^4,10^5)) +
   #scale_fill_viridis(trans = "log10")+
-  labs( color="PIB per Capita", size=8) +
+  labs( color="PIB agropecuária", size=8) +
   theme_minimal()  +
   theme(
     panel.grid = element_blank()
