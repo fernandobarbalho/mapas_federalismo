@@ -1,3 +1,5 @@
+library(colorspace)
+
 analise_cluster<-
 dados_cluster %>%
   mutate(id= row_number())
